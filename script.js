@@ -1,70 +1,47 @@
-const audioPlayer = document.getElementById('audio-player');
-const playButton = document.getElementById('play');
-const pauseButton = document.getElementById('pause');
-const prevButton = document.getElementById('prev');
-const nextButton = document.getElementById('next');
-const songList = document.getElementById('song-list');
-let currentSongIndex = 0;
-let songs = [];
+// API details
+const apiKey = "0d2dbbf362af406f842d9fa95495790f";
+const apiUrl = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`;
 
-async function fetchSongs() {
+// Container to display news
+const newsContainer = document.getElementById("news-container");
+
+// Fetch and display news articles
+async function fetchNews() {
     try {
-        const response = await fetch('https://cors-anywhere.herokuapp.com/https://api.deezer.com/chart'); // Use CORS proxy if needed
+        const response = await fetch(apiUrl);
         const data = await response.json();
-        songs = data.tracks.data.map(track => ({
-            title: track.title,
-            url: track.preview
-        }));
-        renderPlaylist();
-        loadSong(currentSongIndex);
+
+        // Check if response contains articles
+        if (data.articles) {
+            displayNews(data.articles);
+        } else {
+            newsContainer.innerHTML = "<p>No news articles found.</p>";
+        }
     } catch (error) {
-        console.error('Error fetching songs:', error);
+        console.error("Error fetching news:", error);
+        newsContainer.innerHTML = "<p>Failed to load news. Please try again later.</p>";
     }
 }
 
-function renderPlaylist() {
-    songList.innerHTML = '';
-    songs.forEach((song, index) => {
-        const li = document.createElement('li');
-        li.textContent = song.title;
-        li.dataset.src = song.url;
-        if (index === currentSongIndex) {
-            li.classList.add('active');
-        }
-        li.addEventListener('click', () => {
-            currentSongIndex = index;
-            loadSong(currentSongIndex);
-        });
-        songList.appendChild(li);
+// Display news articles in the container
+function displayNews(articles) {
+    newsContainer.innerHTML = ""; // Clear previous content
+    articles.forEach((article) => {
+        const articleElement = document.createElement("div");
+        articleElement.classList.add("article");
+
+        articleElement.innerHTML = `
+            <img src="${article.urlToImage || "https://via.placeholder.com/300x200"}" alt="${article.title}">
+            <div class="article-content">
+                <h2 class="article-title">${article.title}</h2>
+                <p class="article-description">${article.description || "No description available."}</p>
+                <a href="${article.url}" target="_blank" class="article-link">Read more</a>
+            </div>
+        `;
+
+        newsContainer.appendChild(articleElement);
     });
 }
 
-function loadSong(index) {
-    const selectedSong = songs[index];
-    const songItems = Array.from(songList.querySelectorAll('li'));
-    songItems.forEach(song => song.classList.remove('active'));
-    songItems[index].classList.add('active');
-    audioPlayer.src = selectedSong.url;
-    audioPlayer.play();
-}
-
-playButton.addEventListener('click', () => {
-    audioPlayer.play();
-});
-
-pauseButton.addEventListener('click', () => {
-    audioPlayer.pause();
-});
-
-prevButton.addEventListener('click', () => {
-    currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-    loadSong(currentSongIndex);
-});
-
-nextButton.addEventListener('click', () => {
-    currentSongIndex = (currentSongIndex + 1) % songs.length;
-    loadSong(currentSongIndex);
-});
-
-// Fetch songs from Deezer API on load
-fetchSongs();
+// Fetch news when the page loads
+fetchNews();
